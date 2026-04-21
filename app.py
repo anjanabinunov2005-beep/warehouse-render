@@ -8,7 +8,7 @@ from dash.exceptions import PreventUpdate
 
 T1=3.0; T2=5.0; S1=0.8; S2=1.1
 T_FIRST_ROW=1.250/S1; T_ROW_STEP=1.050/S1; T_LIFT_LVL=3.000/S2; T_TRANSFER=T1
-ANIM_MS=1200; LIFT_MS=1800; MAX_QUEUE=50; PER_PAGE=10; NUM_PAGES=5
+ANIM_MS=800; LIFT_MS=1400; MAX_QUEUE=50; PER_PAGE=10; NUM_PAGES=5
 
 DESKTOP=os.path.join(os.path.expanduser("~"),"Desktop")
 LOG_FILE=os.path.join(DESKTOP,"warehouse_log.txt")
@@ -515,6 +515,7 @@ app.layout=html.Div([
     Output('btn-pause','style'),
     Output('btn-restore','children'),
     Output('btn-restore','style'),
+    Output('tick','interval'),
     Input('tick','n_intervals'),
     Input('lvl0','n_clicks'), Input('lvl1','n_clicks'), Input('lvl2','n_clicks'),
     Input('btn-exec','n_clicks'), Input('btn-pause','n_clicks'),
@@ -543,10 +544,11 @@ def main_cb(n_tick,nl0,nl1,nl2,n_exec,n_pause,n_restore,n_delete,n_exit,
 
     with _lock:
         # ── Animation tick ────────────────────────────────────────────────────
-        if 'tick' in trig and _executing[0]:
-            now=time.time()
-            if now-_last_tick[0] >= _tick_ms[0]/1000.0:
-                _last_tick[0]=now; _tick_ms[0]=do_tick()
+        if 'tick' in trig:
+            if _executing[0]:
+                _tick_ms[0] = do_tick()
+                # Auto-follow shuttle level during execution
+                view_lvl = shuttle[0]
 
         # ── Level buttons ─────────────────────────────────────────────────────
         elif trig=='lvl0.n_clicks' and not(_executing[0] and not _paused[0]): view_lvl=0
@@ -557,7 +559,7 @@ def main_cb(n_tick,nl0,nl1,nl2,n_exec,n_pause,n_restore,n_delete,n_exit,
         elif trig=='btn-exec.n_clicks':
             if not _executing[0] and cmd_queue:
                 _executing[0]=True; _paused[0]=False; _pause_req[0]=False
-                _plan.clear(); _last_tick[0]=time.time(); _load_next()
+                _plan.clear(); _load_next()
                 msg="Execution started."
             elif not cmd_queue: msg="Queue is empty — add commands first."
             else: msg="Already executing."
@@ -568,7 +570,7 @@ def main_cb(n_tick,nl0,nl1,nl2,n_exec,n_pause,n_restore,n_delete,n_exit,
                 _pause_req[0]=True; msg="Pausing — shuttle returning to aisle..."
             elif _paused[0]:
                 _paused[0]=False; _pause_req[0]=False; _executing[0]=True
-                _last_tick[0]=time.time(); _load_next(); msg="Resumed."
+                _load_next(); msg="Resumed."
             else: msg="Nothing is executing."
 
         # ── Restore mode ──────────────────────────────────────────────────────
@@ -717,7 +719,8 @@ def main_cb(n_tick,nl0,nl1,nl2,n_exec,n_pause,n_restore,n_delete,n_exit,
 
     return (grid, status_str, time_str, qtable,
             msg, inp, new_mode, new_cell,
-            pause_lbl, pause_style, rst_lbl, rst_style)
+            pause_lbl, pause_style, rst_lbl, rst_style,
+            _tick_ms[0])
 
 
 @app.callback(
