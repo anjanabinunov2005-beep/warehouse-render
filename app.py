@@ -341,8 +341,8 @@ canvas{background:#141414;border-radius:6px;display:block}
       <button class="lvl-btn" style="background:#004D40" onclick="setLevel(2)">LEVEL 2</button>
     </div>
     <div id="canvas-wrap">
-      <canvas id="wh" width="610" height="430"></canvas>
-      <canvas id="overlay" width="610" height="430" style="position:absolute;top:0;left:0;cursor:crosshair" onclick="onCanvasClick(event)"></canvas>
+      <canvas id="wh" width="660" height="450"></canvas>
+      <canvas id="overlay" width="660" height="450" style="position:absolute;top:0;left:0;cursor:crosshair" onclick="onCanvasClick(event)"></canvas>
     </div>
     <div id="hint">Click empty cell → STORE &nbsp;|&nbsp; Filled cell → RETRIEVE &nbsp;|&nbsp; TOP/BOT dock → select</div>
   </div>
@@ -810,6 +810,18 @@ function renderLog() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────────
+// Pre-populate serverCells with empty grid so canvas draws immediately
+serverCells = [];
+for(let r=0;r<7;r++) {
+  for(let c=0;c<7;c++) {
+    let v=0;
+    if(r===2) v=-2;
+    else if(c>=5) v=0;
+    else if(r>=3&&c===2) v=-1;
+    serverCells.push({r,c,v,pid:''});
+  }
+}
+redraw();
 fetchState();
 setInterval(()=>{if(!executing) fetchState();},3000);
 </script>
